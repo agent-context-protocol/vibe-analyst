@@ -30,7 +30,7 @@ def load_icons_as_base64(icon_dir: str):
     return icon_data
 
 # load all your icons into memory once
-ICON_DATA_URI = load_icons_as_base64("icons")
+ICON_DATA_URI = load_icons_as_base64("files/icons")
 
 ICON_MAP = {
     # GitHub Tools
@@ -111,6 +111,8 @@ def render_execution_dag_pyvis(exec_list: dict,
                               blueprint: dict[str, dict] = None, height = 600):
     completed = {str(x) for x in (completed or set())}
 
+    print('Rendering 1...')
+
     # 1) Create the PyVis network with white bg and extra tall height
     net = Network(
         height=f"{height}px",
@@ -148,7 +150,6 @@ def render_execution_dag_pyvis(exec_list: dict,
         "physics": {"enabled": False}
     }
     net.set_options(json.dumps(options))
-
     # 3) Add nodes with image icons
     for nid, meta in exec_list.items():
         n = str(nid)
@@ -197,21 +198,27 @@ def update_and_draw_dag(data: dict,
                         placeholder: st.delta_generator.DeltaGenerator):
     placeholder.empty()
     with placeholder.container():
+        # 🔄 Flatten all subtasks across all outer groups
+        flattened_data = {}
+        for group in data.values():
+            flattened_data.update(group)
+
         execution_list: dict[str, dict] = {
             sub_id: {"dependent_on": [], "depth": 0}
-            for sub_id in data
+            for sub_id in flattened_data
         }
 
         # build dependency list
-        for sub_id, sub in data.items():
+        for sub_id, sub in flattened_data.items():
             for step in sub.get("steps", {}).values():
                 for inp in step.get("input_vars", []):
                     for dep in inp.get("dependencies", []):
                         task = dep.get("sub_task")
-                        if task and task not in execution_list[sub_id]["dependent_on"]:
-                            execution_list[sub_id]["dependent_on"].append(task)
+                        if task and str(task) != str(sub_id):
+                            if task not in execution_list[sub_id]["dependent_on"]:
+                                execution_list[sub_id]["dependent_on"].append(task)
 
-        # compute depths (unused visually but kept for potential layout tweaks)
+        # compute depths
         changed = True
         while changed:
             changed = False
@@ -221,7 +228,6 @@ def update_and_draw_dag(data: dict,
                     if pd > meta["depth"]:
                         meta["depth"] = pd
                         changed = True
-        max_depth = max(meta["depth"] for meta in execution_list.values())  # 0-based
-        # e.g. 150px per level, plus 100px padding:
-        computed_height = 100 + (max_depth + 1) * 150
-        render_execution_dag_pyvis(execution_list, completed, data, height = computed_height)
+
+        computed_height = 100 + (max(meta["depth"] for meta in execution_list.values()) + 1) * 150
+        render_execution_dag_pyvis(execution_list, completed, flattened_data, height=computed_height)

@@ -113,22 +113,51 @@ class StreamlitACP:
         self.ACP = ACP(mcp_tool_manager=self.mcp_manager)
 
     def create_group_sections(self, execution_blueprint):
+        """For each group in the execution blueprint, create a full‑width UI container
+        and render its DAG panel in the sidebar.
+
+        Error‑handling now relies solely on **print** statements so that any failure
+        is reported to the terminal without crashing the whole app.
         """
-        For each group, create a full‐width container and render the stub panel.
-        """
-        self.dag_placeholders = {} 
+
+        # --- Basic type check ----------------------------------------------------
+        if not isinstance(execution_blueprint, dict):
+            print(
+                f"[create_group_sections] ❌  execution_blueprint must be a dict; got {type(execution_blueprint).__name__}"
+            )
+            return
+
+        # Reset placeholders for a fresh render ----------------------------------
+        self.dag_placeholders = {}
+
         for gid, gdata in execution_blueprint.items():
-            container = st.container()
-            self.group_containers[gid] = container
-            # left_col, _ = container.columns([1, 3])  # 25% left, 75% right (blank)
-            self.dag_placeholders[gid] = st.sidebar.empty() 
-            self.dag_placeholders[gid].subheader("Execution DAG")
-            # with left_col:
+            # 1️⃣  Create a container for this group -----------------------------
+            try:
+                container = st.container()
+                self.group_containers[gid] = container
+            except Exception as err:
+                print(f"[create_group_sections] ❌  Could not create container for {gid}: {err}")
+                continue  # Skip this group
+
+            # 2️⃣  Reserve sidebar space for the DAG -----------------------------
+        try:
+            placeholder = st.sidebar.empty()
+            self.dag_placeholder = placeholder
+            placeholder.subheader("Execution DAG")
+        except Exception as err:
+            print(f"[create_group_sections] ❌  Could not create sidebar placeholder for {gid}: {err}")
+
+            # 3️⃣  Draw the DAG ---------------------------------------------------
+        try:
             update_and_draw_dag(
-                    gdata,
+                    execution_blueprint,
                     completed=set(),
-                    placeholder=self.dag_placeholders[gid]
+                    placeholder=placeholder,
                 )
+            print(f"[create_group_sections] ✅  Rendered DAG for group {gid}")
+        except Exception as err:
+            print(f"[create_group_sections] ❌  Error rendering DAG for {gid}: {err}")
+
 
     def update_group_section(self, group_id, user_query):
         
@@ -164,8 +193,9 @@ class StreamlitACP:
         with container:
             components.html(full_doc, height=1200, scrolling=True)
     async def run_acp(self, user_query, execution_blueprint):
+        print('Creating Group Sections...')
         self.create_group_sections(execution_blueprint)
-
+        print('Executing Group Sections...')
         async for group_id in self.ACP.run(user_query, execution_blueprint):
             self.output[group_id] = 'group_results'
             self.update_group_section(group_id, user_query)
@@ -184,8 +214,6 @@ async def main():
     with st.sidebar:
         st.header("User Input")
         user_query = st.text_area("Enter your query:")
-        if st.button("Example Query"):
-            user_query = "Example query"
 
     if st.button("Analyze Vibes"):
         with st.spinner("Agent Context Protocol (ACPs) at work ..."):
@@ -215,11 +243,11 @@ async def main():
                         cur = len(cm.completed_agents)
                         if cur > prev:                        
                             completed = set(map(str, cm.completed_agents))
-                            for gid, ph in acp_app.dag_placeholders.items():
-                                fp = f"execution_blueprint_updated_{gid}.json"
-                                with open(fp) as f:
-                                    data = json.load(f)
-                                update_and_draw_dag(data, completed, ph)
+                            # for gid, ph in acp_app.dag_placeholders.items():
+                            #     fp = f"execution_blueprint_updated_{gid}.json"
+                            #     with open(fp) as f:
+                            #         data = json.load(f)
+                            update_and_draw_dag(acp_app.ACP.dag_compiler.execution_blueprint, completed, acp_app.dag_placeholder)
                             prev = cur
                         if cur >= len(cm.agents):               
                             break
