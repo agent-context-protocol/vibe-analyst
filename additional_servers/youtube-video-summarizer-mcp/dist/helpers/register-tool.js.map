@@ -1,0 +1,1 @@
+{"version":3,"file":"register-tool.js","sourceRoot":"","sources":["../../src/helpers/register-tool.ts"],"names":[],"mappings":"AAIA,MAAM,CAAC,MAAM,YAAY,GAAG,CAC1B,MAAiB,EACjB,cAAoC,EACpC,EAAE;IACF,MAAM,CAAC,IAAI,CACT,cAAc,CAAC,IAAI,EACnB,cAAc,CAAC,WAAW,EAC1B,cAAc,CAAC,MAAM,EACrB,cAAc,CAAC,OAAO,CACvB,CAAC;AACJ,CAAC,CAAC"}

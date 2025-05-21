@@ -1,5 +1,0 @@
-node_modules/
-build/
-*.log
-gcp-oauth.keys.json
-.gcp-saved-tokens.json
