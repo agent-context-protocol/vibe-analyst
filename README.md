@@ -1,5 +1,8 @@
 # Vibe Analyst: The future of data science 
 
+![Demo](files/demo_video.gif)
+
+
 **A paradigm where we "vibe" with data to uncover insights — where intuition is translated into intelligence with a few prompts and clicks.**
 
 In an increasingly data-centric world, data science should be as simple as "vibing" with your data, where agentic systems can translate your intution into concrete  actionable insights and recommendations. 
